@@ -3,34 +3,46 @@ const {
   HTTP_STATUS_CREATED,
 } = require('http2').constants;
 const mongoose = require('mongoose');
-const Card = require('../models/movies');
+const Movie = require('../models/movies');
 const BadRequestError = require('../errors/BadRequestError');
 const NotFoundError = require('../errors/NotFoundError');
 const ForbiddenError = require('../errors/ForbiddenError');
 
-module.exports.getCards = (req, res, next) => {
-  Card.find({})
-    .populate('owner', 'likes')
-    .then((cards) => res.status(HTTP_STATUS_OK).send(cards))
+module.exports.getMovies = (req, res, next) => {
+  Movie.find({ owner: req.user._id })
+    .then((movies) => res.status(HTTP_STATUS_OK).send(movies))
     .catch(next);
 };
 
-module.exports.createCard = (req, res, next) => {
-  const { name, link } = req.body;
-  Card.create({ name, link, owner: req.user._id })
-    .then((card) => {
-      Card.findById(card._id)
-        .orFail()
-        .populate('owner')
-        .then((data) => res.status(HTTP_STATUS_CREATED).send(data))
-        .catch((err) => {
-          if (err instanceof mongoose.Error.DocumentNotFoundError) {
-            next(new NotFoundError(`Карточка с указанным _id ${card._id} не найдена`));
-          } else {
-            next(err);
-          }
-        });
-    })
+module.exports.addMovie = (req, res, next) => {
+  const {
+    country,
+    director,
+    duration,
+    year,
+    description,
+    image,
+    trailerLink,
+    thumbnail,
+    movieId,
+    nameRU,
+    nameEN,
+  } = req.body;
+  Movie.create({
+    country,
+    director,
+    duration,
+    year,
+    description,
+    image,
+    trailerLink,
+    thumbnail,
+    owner: req.user._id,
+    movieId,
+    nameRU,
+    nameEN,
+  })
+    .then((movie) => res.status(HTTP_STATUS_CREATED).send(movie))
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
         next(new BadRequestError(err.message));
@@ -40,23 +52,23 @@ module.exports.createCard = (req, res, next) => {
     });
 };
 
-module.exports.deleteCard = (req, res, next) => {
-  Card.findById(req.params.cardId)
+module.exports.deleteMovie = (req, res, next) => {
+  Movie.findById(req.params.movieId)
     .orFail()
-    .then((card) => {
-      if (!card.owner.equals(req.user._id)) {
-        throw new ForbiddenError('Невозможно удалить карточку другого пользователя');
+    .then((movie) => {
+      if (!movie.owner.equals(req.user._id)) {
+        throw new ForbiddenError('Нельзя удалить фильм другого пользователя');
       }
-      Card.deleteOne(card)
+      Movie.deleteOne(movie)
         .orFail()
         .then(() => {
-          res.status(HTTP_STATUS_OK).send({ message: 'Карточка удалена' });
+          res.status(HTTP_STATUS_OK).send({ message: 'Фильм удален' });
         })
         .catch((err) => {
           if (err instanceof mongoose.Error.DocumentNotFoundError) {
-            next(new NotFoundError(`Карточка с _id: ${req.params.cardId} не найдена`));
+            next(new NotFoundError(`Фильм с _id: ${req.params.movieId} не найден`));
           } else if (err instanceof mongoose.Error.CastError) {
-            next(new BadRequestError(`Некорректный _id карточки: ${req.params.cardId}`));
+            next(new BadRequestError(`Некорректный _id фильма: ${req.params.movieId}`));
           } else {
             next(err);
           }
@@ -64,47 +76,7 @@ module.exports.deleteCard = (req, res, next) => {
     })
     .catch((err) => {
       if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        next(new NotFoundError(`Карточка с _id: ${req.params.cardId} не найдена`));
-      } else {
-        next(err);
-      }
-    });
-};
-
-module.exports.likeCard = (req, res, next) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user._id } },
-    { new: true },
-  )
-    .orFail()
-    .populate(['owner', 'likes'])
-    .then((card) => {
-      res.status(HTTP_STATUS_OK).send(card);
-    })
-    .catch((err) => {
-      if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        next(new NotFoundError(`Карточка с _id: ${req.params.cardId} не найдена.`));
-      } else if (err instanceof mongoose.Error.CastError) {
-        next(new BadRequestError(`Некорректный _id карточки: ${req.params.cardId}`));
-      } else {
-        next(err);
-      }
-    });
-};
-
-module.exports.dislikeCard = (req, res, next) => {
-  Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
-    .orFail()
-    .populate(['owner', 'likes'])
-    .then((card) => {
-      res.status(HTTP_STATUS_OK).send(card);
-    })
-    .catch((err) => {
-      if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        next(new NotFoundError(`Карточка с _id: ${req.params.cardId} не найдена.`));
-      } else if (err instanceof mongoose.Error.CastError) {
-        next(new BadRequestError(`Некорректный _id карточки: ${req.params.cardId}`));
+        next(new NotFoundError(`Фильм с _id: ${req.params.movied} не найдена.`));
       } else {
         next(err);
       }
