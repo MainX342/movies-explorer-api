@@ -10,15 +10,15 @@ const loginValidation = celebrate({
 
 const registerValidation = celebrate({
   [Segments.BODY]: Joi.object().keys({
-    name: Joi.string().min(2).max(30),
+    name: Joi.string().required().min(2).max(30),
     email: Joi.string().required().pattern(emailRegex),
     password: Joi.string().required(),
-  }).unknown(true),
+  }),
 });
 
 const updateUserValidation = celebrate({
   [Segments.BODY]: Joi.object().keys({
-    name: Joi.string().min(2).max(30),
+    name: Joi.string().required().min(2).max(30),
     email: Joi.string().required().pattern(emailRegex),
   }),
 });

@@ -76,7 +76,7 @@ module.exports.deleteMovie = (req, res, next) => {
     })
     .catch((err) => {
       if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        next(new NotFoundError(`Фильм с _id: ${req.params.movied} не найдена.`));
+        next(new NotFoundError(`Фильм с _id: ${req.params.movied} не найден`));
       } else {
         next(err);
       }
